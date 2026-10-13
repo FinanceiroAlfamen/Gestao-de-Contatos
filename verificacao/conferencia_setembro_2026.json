@@ -1,0 +1,80 @@
+{
+  "meses": {
+    "1": 4566,
+    "2": 3987,
+    "3": 3852,
+    "4": 3385,
+    "5": 2963,
+    "6": 3019,
+    "7": 2997,
+    "8": 3108,
+    "9": 2993
+  },
+  "ultimo_contato": "2026-09-30",
+  "setembro_clinicas": {
+    "BH": [
+      215,
+      1068,
+      1283
+    ],
+    "CURITIBA": [
+      152,
+      474,
+      626
+    ],
+    "CAMPINAS": [
+      107,
+      375,
+      482
+    ],
+    "POA": [
+      118,
+      484,
+      602
+    ]
+  },
+  "setembro_atendentes": {
+    "VILMAR": [
+      99,
+      654,
+      753
+    ],
+    "JEAN": [
+      152,
+      474,
+      626
+    ],
+    "KELVER": [
+      114,
+      412,
+      526
+    ],
+    "LEANDRO": [
+      100,
+      338,
+      438
+    ],
+    "HENRIQUE": [
+      118,
+      484,
+      602
+    ],
+    "JOSEPH": [
+      7,
+      37,
+      44
+    ],
+    "PEDRO": [
+      2,
+      2,
+      4
+    ]
+  },
+  "total_setembro": [
+    592,
+    2401,
+    2993
+  ],
+  "divergencias_print": [],
+  "fonte": "dados 2026.xlsx, leitura independente openpyxl; print usado somente como controle"
+}

@@ -1,0 +1,57 @@
+{
+  "sources": [
+    {
+      "arquivo": "dados 2025.xlsx",
+      "linhas": 42290,
+      "inicio": "2025-01-01",
+      "fim": "2025-12-31",
+      "sha256": "f6e2586889c35c7c4ad8a7ed20af30cfc4ef7dfabd95a85fd908c07be34b49ef"
+    },
+    {
+      "arquivo": "dados 2026.xlsx",
+      "linhas": 30870,
+      "inicio": "2026-01-01",
+      "fim": "2026-09-30",
+      "sha256": "bf0352c39b161cca39a84468e01126a511d4139985b7694957d4c054e01f2190"
+    }
+  ],
+  "issues": [],
+  "checks": [
+    {
+      "ano": 2025,
+      "leads": 42290,
+      "agendados": 8913,
+      "compareceu": 6519,
+      "faltou": 1158,
+      "devolucao": 51,
+      "cancelou": 1185,
+      "refs_unicas": 42290
+    },
+    {
+      "ano": 2026,
+      "leads": 30870,
+      "agendados": 6148,
+      "compareceu": 4390,
+      "faltou": 912,
+      "cancelou": 784,
+      "devolucao": 38,
+      "aguardando": 24,
+      "refs_unicas": 30870
+    }
+  ],
+  "fields": [
+    "leads",
+    "cotaveis",
+    "nao_cotaveis",
+    "verificar",
+    "agendados",
+    "compareceu",
+    "ag_cot",
+    "comp_cot",
+    "aguardando",
+    "cancelou",
+    "devolucao",
+    "faltou",
+    "sem_conclusao"
+  ]
+}
