@@ -75,7 +75,7 @@ def build():
     data={'sources':sources,'issues':issues,'checks':checks,'fields':fields,'rows':[[*k,*[v[f] for f in fields]] for k,v in sorted(groups.items())]}
     output=ROOT/'dashboard_leads.html'
     html=(ROOT/'relatorio.template.html').read_text(encoding='utf-8').replace('__DATA__',json.dumps(data,ensure_ascii=False).replace('</','<\\/'))
-    html=html.replace('__STYLES__','\n'.join((ROOT/name).read_text(encoding='utf-8-sig') for name in ['design.css','acentos.css','ajustes-finais.css','equilibrio.css','participacao.css'])).replace('__UI_SCRIPT__',(ROOT/'interacoes.js').read_text(encoding='utf-8')).replace('__REFINEMENT_SCRIPT__',(ROOT/'aprimoramento.js').read_text(encoding='utf-8')+'\n'+(ROOT/'participacao.js').read_text(encoding='utf-8'))
+    html=html.replace('__STYLES__','\n'.join((ROOT/name).read_text(encoding='utf-8-sig') for name in ['design.css','acentos.css','ajustes-finais.css','equilibrio.css','participacao.css','navegacao.css','historico_tooltips.css'])).replace('__UI_SCRIPT__',(ROOT/'interacoes.js').read_text(encoding='utf-8')).replace('__REFINEMENT_SCRIPT__',(ROOT/'aprimoramento.js').read_text(encoding='utf-8')+'\n'+(ROOT/'participacao.js').read_text(encoding='utf-8')+'\n'+(ROOT/'historico_tooltips.js').read_text(encoding='utf-8'))
     def source_body(path):
         text=path.read_text(encoding='utf-8')
         return text[text.index('<h1>'):].replace('</html>','')

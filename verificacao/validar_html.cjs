@@ -105,7 +105,7 @@ const tipCards=['leads','cotaveis','agendados','compareceu'].map(metric=>{const 
 Element.prototype.getBoundingClientRect=function(){return this.id==='participationTip'?{width:340,height:280}:{left:10,top:100,bottom:260,width:280,height:160}};
 const savedQueryAll=document.querySelectorAll;document.querySelectorAll=s=>s==='[data-kpi-metric]'?tipCards:savedQueryAll(s);document.createElement=()=>new Element('created');document.documentElement.clientWidth=1000;win.innerHeight=900;
 vm.runInContext('bindParticipationTips()',context);
-for(const card of tipCards){card.listeners.pointerenter({pointerType:'mouse'});if(element('participationTip').classList.contains('hidden')||!element('participationTip').innerHTML.includes('PARTICIPAÇÃO POR CLÍNICA')||element('participationTip').innerHTML.includes('R$'))throw Error('Dica de participação');card.listeners.pointerleave({pointerType:'mouse'});if(!element('participationTip').classList.contains('hidden'))throw Error('Saída da dica');card.listeners.focus();if(element('participationTip').classList.contains('hidden'))throw Error('Dica por teclado');card.listeners.keydown({key:'Escape'});if(!element('participationTip').classList.contains('hidden'))throw Error('Escape na dica');}
+for(const card of tipCards){card.listeners.pointerenter({pointerType:'mouse'});if(element('participationTip').classList.contains('hidden')||!element('participationTip').innerHTML.includes('PARTICIPAÇÃO POR CLÍNICA')||element('participationTip').innerHTML.includes('R$'))throw Error('Dica de participação');card.listeners.pointerleave({pointerType:'mouse'});if(element('participationTip').classList.contains('hidden'))throw Error('Dica fechou antes da travessia até o painel');card.listeners.focus();if(element('participationTip').classList.contains('hidden'))throw Error('Dica por teclado');card.listeners.keydown({key:'Escape'});if(!element('participationTip').classList.contains('hidden'))throw Error('Escape na dica');}
 console.log('Dicas dos quatro cartões: mouse, foco e Escape conferidos em DOM simulado.');
 for(const previous of [[],[1000,1000,800]]){
  const sample={year:2026,type:'lines',now:[1000,990,1200],previous,label:'Leads',color:'var(--metric-leads)',monthLabels:['Janeiro','Fevereiro','Março']};
@@ -144,3 +144,49 @@ vm.runInContext("printScope='selected';preparePrint()",context);
 if(printSelector!=='#staff details'||element('staff').attrs['data-print-selected']!=='true'||element('overview').attrs['data-print-selected']!=='false')throw Error('Impressão da aba');
 vm.runInContext('restorePrint()',context);document.querySelectorAll=previousQueries;
 console.log('Impressão: janela, nome da aba, escopo completo/selecionado e restauração dos detalhes conferidos.');
+if(!html.includes('class="clinic-filter"')||!html.includes('class="year-filter"')||!html.includes('class="context hidden" hidden'))throw Error('Filtros ou contexto');
+const head=html.slice(html.indexOf('<header class="brand-header"'),html.indexOf('</header>'));
+if(!head.includes('id="print"')||!head.includes('id="themeToggle"')||head.includes('>Imprimir / salvar PDF</button>'))throw Error('Ícones do cabeçalho');
+const navMarkup=html.slice(html.indexOf('<nav id="reportNavigation"'),html.indexOf('</nav>'));
+if((navMarkup.match(/class="tab-icon"/g)||[]).length!==4||!navMarkup.includes('stroke="#00b69c"'))throw Error('Ícones das abas');
+console.log('Navegação AlfaMen: filtros em dois níveis, quatro ícones, botões no cabeçalho e contexto oculto conferidos.');
+vm.runInContext("$('#year').value='2026';$('#clinic').value='';selectedMonths=null;draw()",context);
+const historyCheck=vm.runInContext(`(()=>{
+ const current=subset(2026,9,''),old=prior(2026,9,''),ctx={kind:'monthly',rs:current,old,headers:['Mês','Leads ano atual','Leads ano anterior','Variação','% presença / agendados'],year:2026,clinic:'',months:chosenMonths()};
+ const leads=historySeries(ctx,1,0),previous=historySeries(ctx,2,0),presence=historySeries(ctx,4,0);
+ if(leads.points.length!==9||leads.points[8].value!==2993||leads.points.reduce((s,p)=>s+p.value,0)!==30870)throw Error('Histórico mensal de leads');
+ if(previous.year!==2025||previous.points[8].value!==total(rows.filter(r=>r.year===2025&&r.month===9)).leads)throw Error('Ano anterior no histórico');
+ const september=total(current.filter(r=>r.month===9));if(Math.abs(presence.points[8].value-september.compareceu/september.agendados*100)>.000001)throw Error('Taxa mensal de presença');
+ const ranked={kind:'ranking',rs:current.filter(r=>r.month===9),key:'clinic',labels:['BH'],headers:['Clínica','Leads','Agendados'],year:2026,clinic:'',months:chosenMonths()};
+ const bh=historySeries(ranked,1,0);if(bh.points.length!==9||bh.points[8].value!==1283||historySeries(ranked,2,0).points[8].value!==215)throw Error('Ranking deve recuperar o histórico da clínica');
+ const qualified={...ranked,key:'staff',labels:['KELVER'],headers:['Atendente','Conversão cot.','% presença / agend. cot.']};
+ const staff=historySeries(qualified,1,0),staffPresence=historySeries(qualified,2,0),t=total(current.filter(r=>r.staff==='KELVER'&&r.month===9));
+ if(staff.points[8].value!==(t.cotaveis?t.comp_cot/t.cotaveis*100:null)||staffPresence.points[8].value!==(t.ag_cot?t.comp_cot/t.ag_cot*100:null))throw Error('Cotáveis do atendente');
+ if(historyDelta(10,12,true).text!=='+2 p.p.'||historyDelta(null,12,false).text!=='n.d.')throw Error('Pontos percentuais ou ausência de base');
+ if(!historyChart({...leads,points:[{month:1,value:null},{month:2,value:0},{month:3,value:10}]}).includes('>0</text>'))throw Error('Zero omitido');
+ return {meses:leads.points.length,setembroRede:leads.points[8].value,setembroBH:bh.points[8].value};
+})()`,context);
+console.log('Históricos conferidos por fonte, ano, clínica, atendente e denominadores:',JSON.stringify(historyCheck));
+if(!element('overview').innerHTML.includes('data-history=')||!element('clinics').innerHTML.includes('data-history=')||!element('staff').innerHTML.includes('data-history='))throw Error('Históricos ausentes nas abas');
+const historyEvents={};document.addEventListener=(name,handler)=>historyEvents[name]=handler;
+let renderedHistory=null;document.body={append:node=>{renderedHistory=node}};document.createElement=()=>new Element('history-created');Element.prototype.contains=function(node){return node===this};
+win.tableHistoriesBound=false;vm.runInContext('bindTableHistories()',context);
+const historyId=vm.runInContext("[...tableHistories].find(([id,c])=>c.kind==='monthly'&&c.headers[2]==='Leads ano atual')[0]",context);
+const historyCell=new Element('history-cell');historyCell.dataset={history:historyId,historyCol:'2',historyRow:'0'};historyCell.closest=()=>historyCell;
+historyEvents.focusin({target:historyCell});if(!renderedHistory||renderedHistory.classList.contains('hidden')||!renderedHistory.innerHTML.includes('VARIAÇÃO ENTRE MESES'))throw Error('Abertura do histórico por foco');
+const stablePosition=renderedHistory.style.left+'|'+renderedHistory.style.top;historyEvents.focusin({target:historyCell});if(stablePosition!==renderedHistory.style.left+'|'+renderedHistory.style.top)throw Error('Tooltip se deslocou na mesma célula');
+historyEvents.click({target:historyCell});renderedHistory.listeners.click({target:{closest:()=>({dataset:{historyAction:'expand'}})}});if(!renderedHistory.classList.contains('history-expanded'))throw Error('Ampliação do histórico');
+historyEvents.keydown({key:'Escape',target:historyCell});if(!renderedHistory.classList.contains('hidden'))throw Error('Escape no histórico');
+for(const card of tipCards){card.listeners.focus();if(parseFloat(element('participationTip').style.top)<card.getBoundingClientRect().bottom+10)throw Error('Participação deve ficar abaixo do cartão');card.listeners.blur();}
+console.log('Tooltips: posição estável, participação abaixo do cartão, foco, fixação, ampliação e Escape conferidos.');
+vm.runInContext('window.participationController.close()',context);
+const participationTimers=new Map();let participationTimerId=0;context.setTimeout=fn=>{const id=++participationTimerId;participationTimers.set(id,fn);return id};context.clearTimeout=id=>participationTimers.delete(id);
+const participationPanel=element('participationTip'),firstCard=tipCards[0],secondCard=tipCards[1];
+firstCard.listeners.pointerenter({pointerType:'mouse'});const fixedBelow=participationPanel.style.top;
+firstCard.listeners.pointerleave({pointerType:'mouse'});if(participationPanel.classList.contains('hidden')||participationTimers.size!==1)throw Error('Intervalo para alcançar tooltip');
+participationPanel.listeners.pointerenter();if(participationTimers.size||participationPanel.classList.contains('hidden'))throw Error('Permanência dentro do tooltip');
+firstCard.listeners.pointerenter({pointerType:'mouse'});if(participationPanel.style.top!==fixedBelow)throw Error('Tooltip moveu dentro do mesmo cartão');
+firstCard.listeners.pointerleave({pointerType:'mouse'});secondCard.listeners.pointerenter({pointerType:'mouse'});if(participationTimers.size||participationPanel.classList.contains('hidden')||!participationPanel.innerHTML.includes('LEADS COTÁVEIS'))throw Error('Troca direta entre cartões');
+participationPanel.listeners.pointerleave({relatedTarget:null});for(const fn of [...participationTimers.values()])fn();if(!participationPanel.classList.contains('hidden'))throw Error('Fechamento ao sair do conjunto');
+context.setTimeout=setTimeout;context.clearTimeout=clearTimeout;
+console.log('Cartões: tooltip fixo, passagem até o painel, permanência no painel e troca de indicador sem desaparecimento conferidos.');
