@@ -9,6 +9,33 @@ document.documentElement.dataset.theme=currentTheme;
 document.documentElement.dataset.motion=currentMotion;
 let revealObserver=null,resizeObserver=null,counterFrames=new Map(),toastTimer=null;
 const chartModels=new WeakMap();
+let chartOverlay=null,chartOverlayOwner=null,chartOverlayGuide=null;
+
+function tooltipViewport(){
+  const width=document.documentElement.clientWidth||window.innerWidth||1024,height=window.innerHeight||768;
+  const controls=$('#reportControls')?.getBoundingClientRect();
+  const top=controls?.top<=12&&controls.bottom>12?Math.min(controls.bottom+8,height-24):12;
+  return {left:12,right:width-12,top,bottom:height-12};
+}
+function tooltipPlacement(anchor,height,frame,preferBelow=false){
+  const below=Math.max(0,anchor.bottom+12,frame.top),above=Math.min(anchor.top-12,frame.bottom);
+  const belowRoom=Math.max(0,frame.bottom-below),aboveRoom=Math.max(0,above-frame.top);
+  const useBelow=belowRoom>=height||(preferBelow&&belowRoom>=120)||(aboveRoom<height&&belowRoom>=aboveRoom);
+  const maxHeight=useBelow?belowRoom:aboveRoom;
+  return {top:useBelow?below:above-Math.min(height,maxHeight),maxHeight};
+}
+function positionTooltip(panel,anchor,{preferBelow=false,center=false}={}){
+  const frame=tooltipViewport();panel.style.maxHeight='none';
+  const box=panel.getBoundingClientRect(),height=panel.scrollHeight?Math.max(panel.scrollHeight,box.height):box.height;
+  const {top,maxHeight}=tooltipPlacement(anchor,height,frame,preferBelow);
+  const left=center?anchor.left+(anchor.width-box.width)/2:anchor.left;
+  panel.style.left=Math.max(frame.left,Math.min(frame.right-box.width,left))+'px';
+  panel.style.top=top+'px';panel.style.maxHeight=maxHeight+'px';
+}
+function hideChartOverlay(){chartOverlay?.classList.add('hidden');chartOverlayGuide?.setAttribute('visibility','hidden');chartOverlayOwner=null;chartOverlayGuide=null;}
+window.addEventListener('scroll',hideChartOverlay,{capture:true,passive:true});
+window.addEventListener('resize',hideChartOverlay);
+window.addEventListener('beforeprint',hideChartOverlay);
 
 function formatDate(value){return new Intl.DateTimeFormat('pt-BR',{timeZone:'UTC'}).format(new Date(value+'T12:00:00Z'))}
 function table(headers,values,cls=''){
@@ -26,6 +53,7 @@ function trend(rs,y,m,c){
   return `<div class="legend">${y===2026?`<span style="--c:var(--previous-series)"><i></i>${y-1}</span>`:''}<span style="--c:var(--brand-blue)"><i></i>${y}</span></div><div class="chart-host" data-trend='${esc(JSON.stringify({year:y,now,previous}))}'><div class="chart-tip hidden" role="tooltip"></div></div>`;
 }
 function renderTrend(host){
+  if(chartOverlayOwner===host)hideChartOverlay();
   const model=JSON.parse(host.dataset.trend),labels=model.monthLabels||M,availableWidth=Math.round(host.getBoundingClientRect().width||750),valueWidth=Math.max(...[...model.now,...model.previous].map(v=>n(v).length*6.2),22)+10,width=Math.max(260,availableWidth,Math.ceil(model.now.length*(model.previous.length?2:1)*(valueWidth+6)+77)),height=availableWidth<480?260:300;
   const left=62,right=15,top=model.previous.length?52:36,bottom=51,plotHeight=height-top-bottom,plotWidth=width-left-right,step=plotWidth/model.now.length;
   const peak=Math.max(...model.now,...model.previous,1),unit=Math.pow(10,Math.floor(Math.log10(peak))),ceiling=Math.ceil(peak/unit)*unit;
@@ -46,18 +74,26 @@ function renderTrend(host){
   const tip=host.querySelector('.chart-tip');
   host.querySelector('.chart-svg')?.remove();host.querySelector('.chart-label-note')?.remove();host.insertAdjacentHTML('afterbegin',svg);host.insertAdjacentHTML('beforeend',`<p class="chart-label-note">Valores ${lineChart?'junto a cada ponto':'acima de cada barra'}, nas cores de ${model.previous.length?`${model.year-1} e ${model.year}`:model.year}.${width>availableWidth?' Deslize o gráfico horizontalmente para ver todos os meses.':''}</p>`);
   chartModels.set(host,model);
-  const guide=host.querySelector('.chart-month-guide'),hideTip=()=>{tip?.classList.add('hidden');guide?.setAttribute('visibility','hidden')};
+  const guide=host.querySelector('.chart-month-guide'),hideTip=()=>{tip?.classList.add('hidden');if(chartOverlayOwner===host)hideChartOverlay();guide?.setAttribute('visibility','hidden')};
   const marks=host.querySelectorAll('[data-month]');
   for(const mark of marks){
     const reveal=(event)=>{
-      const i=+mark.dataset.month,area=host.getBoundingClientRect(),markBounds=mark.getBoundingClientRect(),monthX=left+(i+.5)*step;
+      const i=+mark.dataset.month,monthX=left+(i+.5)*step;
+      let panel=tip;
+      if(tip?.cloneNode&&document.body){if(!chartOverlay){chartOverlay=tip.cloneNode(false);chartOverlay.classList.add('chart-tip-floating');document.body.append(chartOverlay);}panel=chartOverlay;chartOverlayOwner=host;chartOverlayGuide=guide;}
+      if(!panel)return;
       if(lineChart){guide?.setAttribute('x1',monthX);guide?.setAttribute('x2',monthX);guide?.setAttribute('visibility','visible');}
       const change=variation(model.now[i],model.previous[i]),changeValue=numericValue(change),changeColor=typeof changeValue==='number'&&changeValue!==0?(changeValue>0?'var(--rate-attended)':'var(--negative)'):'var(--muted)',currentColor=model.color||'var(--brand-blue)';
-      tip.innerHTML=`<b>${labels[i]} · ${esc(model.label||'Leads')}</b>${model.previous.length?`<div class="line"><span style="color:var(--muted)">${model.year-1}</span><i style="color:var(--muted);font-weight:700">${n(model.previous[i])}</i></div>`:''}<div class="line"><span style="color:${currentColor};font-weight:700">${model.year}</span><i style="color:${currentColor};font-weight:700">${n(model.now[i])}</i></div>${model.previous.length?`<div class="line"><span>Variação</span><i style="color:${changeColor};font-weight:700">${change}</i></div>`:''}`;
-      tip.classList.remove('hidden');let x=(event.clientX||markBounds.x+markBounds.width/2)-area.x;
-      const scroll=host.scrollLeft||0;tip.style.left=(scroll+Math.max(4,Math.min(area.width-tip.offsetWidth-4,x+12)))+'px';tip.style.top=Math.max(12,Math.min(area.height-tip.offsetHeight-10,markBounds.y-area.y-30))+'px';
+      panel.innerHTML=`<b>${labels[i]} · ${esc(model.label||'Leads')}</b>${model.previous.length?`<div class="line"><span style="color:var(--muted)">${model.year-1}</span><i style="color:var(--muted);font-weight:700">${n(model.previous[i])}</i></div>`:''}<div class="line"><span style="color:${currentColor};font-weight:700">${model.year}</span><i style="color:${currentColor};font-weight:700">${n(model.now[i])}</i></div>${model.previous.length?`<div class="line"><span>Variação</span><i style="color:${changeColor};font-weight:700">${change}</i></div>`:''}`;
+      panel.classList.remove('hidden');placeChartTip(event);
     };
+    function placeChartTip(event){
+      if(chartOverlayOwner!==host||chartOverlay.classList.contains('hidden'))return;
+      const bounds=mark.getBoundingClientRect(),x=event.clientX??(bounds.left+bounds.width/2),y=event.clientY??bounds.top;
+      positionTooltip(chartOverlay,{left:x+14,top:y,bottom:y});
+    }
     mark.addEventListener('pointerenter',reveal);mark.addEventListener('focus',reveal);
+    mark.addEventListener('pointermove',event=>{if(chartOverlayOwner!==host)return;const box=chartOverlay.getBoundingClientRect();if(event.clientX>=box.left&&event.clientX<=box.right&&event.clientY>=box.top&&event.clientY<=box.bottom)placeChartTip(event)});
     mark.addEventListener('pointerleave',hideTip);mark.addEventListener('blur',hideTip);
     mark.addEventListener('keydown',event=>{if(event.key==='Escape')hideTip()});
     mark.addEventListener('click',reveal);
@@ -111,6 +147,7 @@ function revealVisible(){
   section.querySelectorAll('.panel').forEach((node,i)=>{if(node.dataset.revealed)return;node.dataset.revealed='true';node.classList.add('reveal-pending');node.style.transitionDelay=Math.min(i*40,120)+'ms';revealObserver.observe(node)});
 }
 function show(v){
+  hideChartOverlay();
   view=v;['overview','clinics','staff','method'].forEach(id=>{const active=id===v;$('#'+id).classList.toggle('hidden',!active);$('#'+id).setAttribute('aria-hidden',String(!active));});
   document.querySelectorAll('nav button').forEach(b=>{const active=b.dataset.view===v;b.classList.toggle('active',active);b.setAttribute('aria-selected',String(active));b.setAttribute('aria-pressed',String(active));b.tabIndex=active?0:-1;});
   $('#cards').classList.toggle('hidden',v==='method');revealVisible();

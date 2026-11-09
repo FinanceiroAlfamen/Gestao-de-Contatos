@@ -190,3 +190,19 @@ firstCard.listeners.pointerleave({pointerType:'mouse'});secondCard.listeners.poi
 participationPanel.listeners.pointerleave({relatedTarget:null});for(const fn of [...participationTimers.values()])fn();if(!participationPanel.classList.contains('hidden'))throw Error('Fechamento ao sair do conjunto');
 context.setTimeout=setTimeout;context.clearTimeout=clearTimeout;
 console.log('Cartões: tooltip fixo, passagem até o painel, permanência no painel e troca de indicador sem desaparecimento conferidos.');
+const placementCases=vm.runInContext(`[
+ tooltipPlacement({top:180,bottom:220},300,{top:100,bottom:720}),
+ tooltipPlacement({top:650,bottom:690},300,{top:100,bottom:720}),
+ tooltipPlacement({top:280,bottom:320},480,{top:100,bottom:600}),
+ tooltipPlacement({top:300,bottom:400},360,{top:100,bottom:660},true)
+]`,context);
+const [below,above,limitedPlacement,cardPlacement]=placementCases;
+if(below.top!==232||above.top+300!==638||limitedPlacement.top!==332||limitedPlacement.maxHeight!==268||cardPlacement.top!==412)throw Error('Tooltip deve ficar fora da área ativa, inclusive perto das bordas');
+if(!html.includes('.participation-tip,.table-history-tip{pointer-events:none}')||!html.includes('.table-history-tip.history-pinned{pointer-events:auto}'))throw Error('A prévia não pode bloquear cliques');
+historyEvents.focusin({target:historyCell});
+if(renderedHistory.classList.contains('history-pinned'))throw Error('Prévia deve ser passiva');
+historyEvents.click({target:historyCell});
+if(!renderedHistory.classList.contains('history-pinned'))throw Error('Painel fixado deve permitir ações');
+historyEvents.click({target:{closest:()=>null}});
+if(!renderedHistory.classList.contains('hidden'))throw Error('Clicar fora deve fechar o painel');
+console.log('Tooltips: posicionamento sem sobreposição, prévia passiva e ações disponíveis somente ao fixar.');
