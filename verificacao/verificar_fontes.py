@@ -18,7 +18,7 @@ for year in (2025, 2026):
     book = openpyxl.load_workbook(root / 'Base de Dados' / f'dados {year}.xlsx', read_only=True, data_only=True)
     sheet = book.active
     rows = sheet.values
-    header = next(rows)
+    header = next(row for row in rows if any(row))
     ref_index = header.index('REF')
     count, refs = 0, set()
     for row in rows:

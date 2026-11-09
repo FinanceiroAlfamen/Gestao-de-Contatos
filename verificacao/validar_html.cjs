@@ -100,7 +100,7 @@ if(!html.includes('<h1>GESTÃO DE CONTATOS</h1>')||html.includes('<p class="head
 if(html.indexOf('id="themeToggle"')>html.indexOf('id="print"')||!html.includes('id="themeHint"'))throw Error('Posição do tema ou dica');
 
 for(const metric of ['leads','cotaveis','agendados','compareceu']){context.metricForTest=metric;const parts=vm.runInContext("clinicParticipation(subset(2026,monthTo(),''),metricForTest)",context);if(parts.some((p,i)=>i&&p.value>parts[i-1].value))throw Error('Ordem da participação');const sum=parts.reduce((a,p)=>a+p.value,0),target=vm.runInContext("total(subset(2026,monthTo(),''))[metricForTest]",context);if(sum!==target)throw Error('Total da participação');if(target&&Math.abs(parts.reduce((a,p)=>a+p.share,0)-100)>.000001)throw Error('Percentual da participação');}
-if(d.rows.some(r=>r[0].startsWith('2026-')&&+r[0].slice(5,7)>9))throw Error('Outubro ainda na base');console.log('Participação dos quatro indicadores: ordem, contagens e percentuais conferidos.');
+if(d.rows.filter(r=>r[0].startsWith('2026-')).at(-1)[0]!==d.sources.find(s=>s.arquivo.includes('2026')).fim)throw Error('Corte da fonte de 2026');console.log('Participação dos quatro indicadores: ordem, contagens e percentuais conferidos.');
 const tipCards=['leads','cotaveis','agendados','compareceu'].map(metric=>{const card=new Element('tip-card');card.dataset.kpiMetric=metric;return card});
 Element.prototype.getBoundingClientRect=function(){return this.id==='participationTip'?{width:340,height:280}:{left:10,top:100,bottom:260,width:280,height:160}};
 const savedQueryAll=document.querySelectorAll;document.querySelectorAll=s=>s==='[data-kpi-metric]'?tipCards:savedQueryAll(s);document.createElement=()=>new Element('created');document.documentElement.clientWidth=1000;win.innerHeight=900;
@@ -152,19 +152,19 @@ if((navMarkup.match(/class="tab-icon"/g)||[]).length!==4||!navMarkup.includes('s
 console.log('Navegação AlfaMen: filtros em dois níveis, quatro ícones, botões no cabeçalho e contexto oculto conferidos.');
 vm.runInContext("$('#year').value='2026';$('#clinic').value='';selectedMonths=null;draw()",context);
 const historyCheck=vm.runInContext(`(()=>{
- const current=subset(2026,9,''),old=prior(2026,9,''),ctx={kind:'monthly',rs:current,old,headers:['Mês','Leads ano atual','Leads ano anterior','Variação','% presença / agendados'],year:2026,clinic:'',months:chosenMonths()};
+ const last=monthTo(),i=last-1,current=subset(2026,last,''),old=prior(2026,last,''),ctx={kind:'monthly',rs:current,old,headers:['Mês','Leads ano atual','Leads ano anterior','Variação','% presença / agendados'],year:2026,clinic:'',months:chosenMonths()};
  const leads=historySeries(ctx,1,0),previous=historySeries(ctx,2,0),presence=historySeries(ctx,4,0);
- if(leads.points.length!==9||leads.points[8].value!==2993||leads.points.reduce((s,p)=>s+p.value,0)!==30870)throw Error('Histórico mensal de leads');
- if(previous.year!==2025||previous.points[8].value!==total(rows.filter(r=>r.year===2025&&r.month===9)).leads)throw Error('Ano anterior no histórico');
- const september=total(current.filter(r=>r.month===9));if(Math.abs(presence.points[8].value-september.compareceu/september.agendados*100)>.000001)throw Error('Taxa mensal de presença');
- const ranked={kind:'ranking',rs:current.filter(r=>r.month===9),key:'clinic',labels:['BH'],headers:['Clínica','Leads','Agendados'],year:2026,clinic:'',months:chosenMonths()};
- const bh=historySeries(ranked,1,0);if(bh.points.length!==9||bh.points[8].value!==1283||historySeries(ranked,2,0).points[8].value!==215)throw Error('Ranking deve recuperar o histórico da clínica');
+ if(leads.points.length!==last||leads.points[i].value!==total(current.filter(r=>r.month===last)).leads||leads.points.reduce((s,p)=>s+p.value,0)!==D.checks.find(x=>x.ano===2026).leads)throw Error('Histórico mensal de leads');
+ if(previous.year!==2025||previous.points[i].value!==total(rows.filter(r=>r.year===2025&&r.month===last)).leads)throw Error('Ano anterior no histórico');
+ const lastMonth=total(current.filter(r=>r.month===last));if(Math.abs(presence.points[i].value-lastMonth.compareceu/lastMonth.agendados*100)>.000001)throw Error('Taxa mensal de presença');
+ const ranked={kind:'ranking',rs:current.filter(r=>r.month===last),key:'clinic',labels:['BH'],headers:['Clínica','Leads','Agendados'],year:2026,clinic:'',months:chosenMonths()};
+ const bh=historySeries(ranked,1,0);const bhLast=total(current.filter(r=>r.month===last&&r.clinic==='BH'));if(bh.points.length!==last||bh.points[i].value!==bhLast.leads||historySeries(ranked,2,0).points[i].value!==bhLast.agendados)throw Error('Ranking deve recuperar o histórico da clínica');
  const qualified={...ranked,key:'staff',labels:['KELVER'],headers:['Atendente','Conversão cot.','% presença / agend. cot.']};
- const staff=historySeries(qualified,1,0),staffPresence=historySeries(qualified,2,0),t=total(current.filter(r=>r.staff==='KELVER'&&r.month===9));
- if(staff.points[8].value!==(t.cotaveis?t.comp_cot/t.cotaveis*100:null)||staffPresence.points[8].value!==(t.ag_cot?t.comp_cot/t.ag_cot*100:null))throw Error('Cotáveis do atendente');
+ const staff=historySeries(qualified,1,0),staffPresence=historySeries(qualified,2,0),t=total(current.filter(r=>r.staff==='KELVER'&&r.month===last));
+ if(staff.points[i].value!==(t.cotaveis?t.comp_cot/t.cotaveis*100:null)||staffPresence.points[i].value!==(t.ag_cot?t.comp_cot/t.ag_cot*100:null))throw Error('Cotáveis do atendente');
  if(historyDelta(10,12,true).text!=='+2 p.p.'||historyDelta(null,12,false).text!=='n.d.')throw Error('Pontos percentuais ou ausência de base');
  if(!historyChart({...leads,points:[{month:1,value:null},{month:2,value:0},{month:3,value:10}]}).includes('>0</text>'))throw Error('Zero omitido');
- return {meses:leads.points.length,setembroRede:leads.points[8].value,setembroBH:bh.points[8].value};
+ return {meses:leads.points.length,ultimoMesRede:leads.points[i].value,ultimoMesBH:bh.points[i].value};
 })()`,context);
 console.log('Históricos conferidos por fonte, ano, clínica, atendente e denominadores:',JSON.stringify(historyCheck));
 if(!element('overview').innerHTML.includes('data-history=')||!element('clinics').innerHTML.includes('data-history=')||!element('staff').innerHTML.includes('data-history='))throw Error('Históricos ausentes nas abas');

@@ -9,13 +9,49 @@
     },
     {
       "arquivo": "dados 2026.xlsx",
-      "linhas": 30870,
+      "linhas": 33667,
       "inicio": "2026-01-01",
-      "fim": "2026-09-30",
-      "sha256": "bf0352c39b161cca39a84468e01126a511d4139985b7694957d4c054e01f2190"
+      "fim": "2026-10-31",
+      "sha256": "ddc204593dd46f70d0006bc7ab61340ece95733ffbfe8c006d0aeb89b4dabfc0"
     }
   ],
-  "issues": [],
+  "issues": [
+    {
+      "arquivo": "dados 2026.xlsx",
+      "clinica": "BH",
+      "linha": 8907,
+      "ref": "75135",
+      "motivo": "Atendente ausente; incluído em SEM ATENDENTE."
+    },
+    {
+      "arquivo": "dados 2026.xlsx",
+      "clinica": "BH",
+      "linha": 12672,
+      "ref": "74937",
+      "motivo": "Qualificação VERIFICAR MOTIVO, mantida separada de não cotável."
+    },
+    {
+      "arquivo": "dados 2026.xlsx",
+      "clinica": "BH",
+      "linha": 29243,
+      "ref": "74782",
+      "motivo": "Qualificação VERIFICAR MOTIVO, mantida separada de não cotável."
+    },
+    {
+      "arquivo": "dados 2026.xlsx",
+      "clinica": "BH",
+      "linha": 29243,
+      "ref": "74782",
+      "motivo": "Atendente ausente; incluído em SEM ATENDENTE."
+    },
+    {
+      "arquivo": "dados 2026.xlsx",
+      "clinica": "BH",
+      "linha": 31511,
+      "ref": "75128",
+      "motivo": "Atendente ausente; incluído em SEM ATENDENTE."
+    }
+  ],
   "checks": [
     {
       "ano": 2025,
@@ -29,14 +65,14 @@
     },
     {
       "ano": 2026,
-      "leads": 30870,
-      "agendados": 6148,
-      "compareceu": 4390,
-      "faltou": 912,
-      "cancelou": 784,
-      "devolucao": 38,
-      "aguardando": 24,
-      "refs_unicas": 30870
+      "leads": 33667,
+      "agendados": 6733,
+      "compareceu": 4809,
+      "faltou": 1007,
+      "cancelou": 845,
+      "devolucao": 39,
+      "aguardando": 33,
+      "refs_unicas": 33667
     }
   ],
   "fields": [
